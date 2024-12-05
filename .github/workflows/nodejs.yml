@@ -1,0 +1,61 @@
+name: Node.js CI/CD with Docker
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Node.js environment
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'  # Set the Node.js version (adjust based on your needs)
+
+    # Step 3: Install dependencies
+    - name: Install dependencies
+      run: npm install
+
+    # Step 4: Run tests
+    - name: Run tests
+      run: npm test
+
+    # Step 5: Build the Docker image
+    - name: Build Docker image
+      run: |
+        docker build -t your-dockerhub-username/todo-app:$GITHUB_SHA .
+        docker tag your-dockerhub-username/todo-app:$GITHUB_SHA your-dockerhub-username/todo-app:latest
+
+    # Step 6: Log in to Docker Hub and Push the Docker image (Only if push event happens)
+    - name: Log in to Docker Hub
+      if: github.event_name == 'push'
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+
+    # Step 7: Push the Docker image to Docker Hub (Optional)
+    - name: Push Docker image to Docker Hub
+      if: github.event_name == 'push'
+      run: |
+        docker push your-dockerhub-username/todo-app:$GITHUB_SHA
+        docker push your-dockerhub-username/todo-app:latest
+
+    # Step 8: (Optional) Deploy to server or platform (example: using SSH)
+    - name: Deploy to server (Optional)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@your-server-ip "docker pull your-dockerhub-username/todo-app:latest && docker-compose up -d"
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
