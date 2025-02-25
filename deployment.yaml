@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-todo-app
+  labels:
+    app: node-todo-app
+spec:
+  replicas: 2  # Adjust the number of replicas as needed
+  selector:
+    matchLabels:
+      app: node-todo-app
+  template:
+    metadata:
+      labels:
+        app: node-todo-app
+    spec:
+      containers:
+      - name: node-todo-app
+        image: your-dockerhub-username/node-todo-app:latest
+        ports:
+        - containerPort: 8000  # Make sure this matches the port in your Dockerfile
