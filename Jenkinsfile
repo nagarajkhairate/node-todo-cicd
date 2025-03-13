@@ -1,37 +1,41 @@
 pipeline {
-    agent { label "dev-server"}
+    agent any  // This will use the default Jenkins master node for execution.
     
     stages {
         
-        stage("code"){
-            steps{
+        stage("code") {
+            steps {
                 git url: "https://github.com/nagarajkhairate/node-todo-cicd.git", branch: "master"
                 echo 'bhaiyya code clone ho gaya'
             }
         }
-        stage("build and test"){
-            steps{
+        
+        stage("build and test") {
+            steps {
                 sh "docker build -t node-app-test-new ."
                 echo 'code build bhi ho gaya'
             }
         }
-        stage("scan image"){
-            steps{
+        
+        stage("scan image") {
+            steps {
                 echo 'image scanning ho gayi'
             }
         }
-        stage("push"){
-            steps{
-                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
-                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                sh "docker tag node-app-test-new:latest ${env.dockerHubUser}/node-app-test-new:latest"
-                sh "docker push ${env.dockerHubUser}/node-app-test-new:latest"
-                echo 'image push ho gaya'
+        
+        stage("push") {
+            steps {
+                withCredentials([usernamePassword(credentialsId:"dockerHub", passwordVariable:"dockerHubPass", usernameVariable:"dockerHubUser")]) {
+                    sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                    sh "docker tag node-app-test-new:latest ${env.dockerHubUser}/node-app-test-new:latest"
+                    sh "docker push ${env.dockerHubUser}/node-app-test-new:latest"
+                    echo 'image push ho gaya'
                 }
             }
         }
-        stage("deploy"){
-            steps{
+        
+        stage("deploy") {
+            steps {
                 sh "docker-compose down && docker-compose up -d"
                 echo 'deployment ho gayi'
             }
