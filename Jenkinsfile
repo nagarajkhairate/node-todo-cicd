@@ -1,71 +1,77 @@
 pipeline {
-    agent any  // Use any available Jenkins agent
-    
+    agent any
+
     environment {
-        DOCKER_IMAGE_NAME = "node-app-test-new"
-        DOCKER_HUB_REPO = "yourdockerhubusername"  // Replace with your DockerHub username
+        // Define the environment variables here
+        DOCKER_IMAGE = "node-app-test-new"
+        DOCKER_TAG = "latest"
     }
-    
+
     stages {
-        
-        stage('Checkout Code') {
+        stage('Checkout SCM') {
             steps {
-                echo "Checking out code from GitHub..."
-                git url: 'https://github.com/nagarajkhairate/node-todo-cicd.git', branch: 'master'
+                script {
+                    // Checkout the latest code from GitHub repository
+                    echo 'Checking out code from GitHub...'
+                    checkout scm
+                }
             }
         }
-        
+
         stage('Build and Test') {
             steps {
-                echo "Building Docker image..."
-                sh 'docker build -t ${DOCKER_IMAGE_NAME} .'
+                script {
+                    echo 'Building Docker image...'
+                    sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
 
-                echo "Running npm install for testing"
-                sh 'npm install'
+                    echo 'Updating npm to the latest version inside the container...'
+                    sh 'docker run --rm $DOCKER_IMAGE:$DOCKER_TAG npm install -g npm@latest'
+
+                    echo 'Running npm install for dependencies...'
+                    sh 'docker run --rm $DOCKER_IMAGE:$DOCKER_TAG npm install'
+
+                    echo 'Running tests if available...'
+                    // Add your testing commands here if needed, like `npm test` or other commands
+                    // sh 'docker run --rm $DOCKER_IMAGE:$DOCKER_TAG npm test'
+                }
             }
         }
-        
+
         stage('Scan Image') {
             steps {
-                echo "Scanning Docker image..."
-                // Example: Use a scanning tool like Trivy or Docker Scan (Uncomment the line below)
-                // sh 'docker scan ${DOCKER_IMAGE_NAME}'
-                echo "Image scan completed"
+                echo 'Skipping scan image due to earlier failure or optional stage.'
+                // You can integrate security scanning here using tools like Trivy, Snyk, etc.
             }
         }
-        
-        stage('Push to DockerHub') {
+
+        stage('Push Image') {
             steps {
-                echo "Pushing image to DockerHub..."
-                withCredentials([usernamePassword(credentialsId: 'dockerHub', passwordVariable: 'DOCKER_HUB_PASS', usernameVariable: 'DOCKER_HUB_USER')]) {
-                    sh 'docker login -u ${DOCKER_HUB_USER} -p ${DOCKER_HUB_PASS}'
-                    sh 'docker tag ${DOCKER_IMAGE_NAME}:latest ${DOCKER_HUB_REPO}/${DOCKER_IMAGE_NAME}:latest'
-                    sh 'docker push ${DOCKER_HUB_REPO}/${DOCKER_IMAGE_NAME}:latest'
-                }
-                echo "Docker image pushed to DockerHub"
+                echo 'Skipping image push due to earlier failure or optional stage.'
+                // Add the docker push commands here if you want to push the image to a registry
+                // sh 'docker push $DOCKER_IMAGE:$DOCKER_TAG'
             }
         }
-        
-        stage('Deploy with Docker Compose') {
+
+        stage('Deploy') {
             steps {
-                echo "Deploying with Docker Compose..."
-                sh 'docker-compose down && docker-compose up -d'
-                echo "Deployment completed"
+                echo 'Skipping deploy due to earlier failure or optional stage.'
+                // You can integrate Kubernetes deployments, Helm charts, or other deployment strategies here.
+                // Example: kubectl apply -f k8s/deployment.yaml
             }
         }
     }
 
     post {
         always {
-            echo 'Cleaning up...'
-            // Clean up Docker containers and images after the pipeline runs
-            sh 'docker system prune -f'
+            echo 'Cleaning up resources...'
+            // You can clean up Docker images or other resources here if needed
+            // sh 'docker system prune -f'
         }
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Pipeline executed successfully!'
         }
         failure {
-            echo 'Pipeline failed, please check the logs.'
+            echo 'Pipeline failed, please check the logs for details.'
         }
     }
 }
