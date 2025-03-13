@@ -1,43 +1,50 @@
 pipeline {
-    agent any  // This will use the default Jenkins master node for execution.
+    agent any  // Use the default agent, not a specific label
     
     stages {
         
         stage("code") {
             steps {
                 git url: "https://github.com/nagarajkhairate/node-todo-cicd.git", branch: "master"
-                echo 'bhaiyya code clone ho gaya'
+                echo 'Bhaiyya, code clone ho gaya'
             }
         }
-        
+
         stage("build and test") {
             steps {
+                // Update npm to the latest version
+                sh 'npm install -g npm@latest'
+                
+                // Now run the npm install
+                sh 'npm install'
+                
+                // Build Docker image
                 sh "docker build -t node-app-test-new ."
-                echo 'code build bhi ho gaya'
+                echo 'Code build ho gaya'
             }
         }
-        
+
         stage("scan image") {
             steps {
-                echo 'image scanning ho gayi'
+                echo 'Image scanning ho gayi'
             }
         }
-        
+
         stage("push") {
             steps {
-                withCredentials([usernamePassword(credentialsId:"dockerHub", passwordVariable:"dockerHubPass", usernameVariable:"dockerHubUser")]) {
+                withCredentials([usernamePassword(credentialsId: "dockerHub", passwordVariable: "dockerHubPass", usernameVariable: "dockerHubUser")]) {
                     sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
                     sh "docker tag node-app-test-new:latest ${env.dockerHubUser}/node-app-test-new:latest"
                     sh "docker push ${env.dockerHubUser}/node-app-test-new:latest"
-                    echo 'image push ho gaya'
+                    echo 'Image push ho gayi'
                 }
             }
         }
-        
+
         stage("deploy") {
             steps {
                 sh "docker-compose down && docker-compose up -d"
-                echo 'deployment ho gayi'
+                echo 'Deployment ho gayi'
             }
         }
     }
